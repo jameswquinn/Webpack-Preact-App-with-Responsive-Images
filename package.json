@@ -5,12 +5,17 @@
   "main": "index.js",
   "scripts": {
     "start": "webpack serve --mode development",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "analyzer": "webpack --profile --json > stats.json"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "preact": "^10.13.1"
+    "minimatch": "^10.0.1",
+    "mkdirp": "^3.0.1",
+    "preact": "^10.13.1",
+    "svgo": "^3.3.2",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.9",
@@ -24,9 +29,14 @@
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.0",
     "favicons-webpack-plugin": "^6.0.1",
-    "glob": "^10.3.4",
+    "glob": "^11.0.0",
     "html-webpack-plugin": "^5.6.0",
+    "image-minimizer-webpack-plugin": "^4.1.0",
+    "imagemin": "^9.0.0",
+    "imagemin-mozjpeg": "^10.0.0",
+    "imagemin-pngquant": "^10.0.0",
     "imagemin-webpack-plugin": "^2.4.2",
+    "lazysizes": "^5.3.2",
     "mini-css-extract-plugin": "^2.7.6",
     "postcss-loader": "^8.1.1",
     "responsive-loader": "^3.1.2",
@@ -41,7 +51,6 @@
     "webpack-dev-server": "^4.15.1",
     "webpack-merge": "^5.8.0",
     "webpack-pwa-manifest": "^4.3.0",
-    "workbox-webpack-plugin": "^7.1.0",
-    "lazysizes": "^5.3.2"
+    "workbox-webpack-plugin": "^7.1.0"
   }
 }
