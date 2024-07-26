@@ -21,8 +21,8 @@ This project is a Progressive Web App (PWA) built with Preact and Webpack, featu
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/webpack-preact-app.git
-   cd webpack-preact-app
+   git clone https://github.com/jameswquinn/Webpack-Preact-App-with-Responsive-Images.git
+   cd Webpack-Preact-App-with-Responsive-Images
    ```
 
 2. Install the dependencies:
