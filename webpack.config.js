@@ -1,7 +1,6 @@
 const path = require("path");
 const glob = require("glob");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const ImageminWebpackPlugin = require("imagemin-webpack-plugin").default;
 const FaviconsWebpackPlugin = require("favicons-webpack-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
@@ -14,7 +13,7 @@ const BundleAnalyzerPlugin =
   require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const { merge } = require("webpack-merge");
 const PurgeCSSPlugin = require("@fullhuman/postcss-purgecss");
-const ImageminPlugin = require("imagemin-webpack-plugin").default;
+const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 
 const pathsToPurge = glob.sync(
   path.resolve(__dirname, "src/**/*.{js,jsx,ts,tsx,css,html}"),
@@ -87,25 +86,10 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.(png|jpe?g|gif|svg|webp)$/i,
-          use: [
-            {
-              loader: "url-loader",
-              options: {
-                limit: 8192, // 8 KB
-                name: "[path][name].[ext]",
-              },
-              loader: "responsive-loader",
-              options: {
-                adapter: require("responsive-loader/sharp"),
-                sizes: [300, 600, 1200],
-                placeholder: true,
-                placeholderSize: 50,
-                name: "images/[name]-[width].[ext]",
-                format: "webp", // Use WebP format for better compression
-              },
-            },
-          ],
-          type: "javascript/auto", // Needed to prevent asset modules from conflicting
+          type: "asset/resource",
+          generator: {
+            filename: "images/[name][ext][query]",
+          },
         },
       ],
     },
@@ -115,12 +99,7 @@ module.exports = (env, argv) => {
         minify: !isDevelopment,
       }),
       new FaviconsWebpackPlugin("./src/assets/icon.png"),
-      new ImageminPlugin({
-        test: /\.(jpe?g|png|gif|svg)$/i,
-        pngquant: {
-          quality: "95-100",
-        },
-      }),
+      // ImageMinimizerPlugin configuration moved to productionConfig
     ],
   };
 
@@ -160,6 +139,28 @@ module.exports = (env, argv) => {
           },
         }),
         new CssMinimizerPlugin(),
+        new ImageMinimizerPlugin({
+          test: /\.(jpe?g|png|gif|svg)$/i,
+          minimizer: [
+            {
+              implementation: require("image-minimizer-webpack-plugin")
+                .imageminMinify,
+              options: {
+                plugins: [
+                  ["gifsicle", { interlaced: true }],
+                  ["jpegtran", { progressive: true }],
+                  ["optipng", { optimizationLevel: 5 }],
+                  [
+                    "svgo",
+                    {
+                      plugins: [{ removeViewBox: false }],
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        }),
       ],
       splitChunks: {
         chunks: "all",
@@ -208,11 +209,6 @@ module.exports = (env, argv) => {
       new BundleAnalyzerPlugin({
         analyzerMode: "static",
         openAnalyzer: false,
-      }),
-      new ImageminWebpackPlugin({
-        pngquant: {
-          quality: "95-100",
-        },
       }),
     ],
   };
