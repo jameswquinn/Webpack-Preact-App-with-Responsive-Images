@@ -1,20 +1,24 @@
 const path = require("path");
-const glob = require('glob');
+const glob = require("glob");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const ImageminWebpackPlugin = require('imagemin-webpack-plugin').default;
-const FaviconsWebpackPlugin = require('favicons-webpack-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const ImageminWebpackPlugin = require("imagemin-webpack-plugin").default;
+const FaviconsWebpackPlugin = require("favicons-webpack-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const CompressionPlugin = require('compression-webpack-plugin');
+const CompressionPlugin = require("compression-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const webpack = require("webpack");
 const WebpackPwaManifest = require("webpack-pwa-manifest");
 const { GenerateSW } = require("workbox-webpack-plugin");
-const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
-const { merge } = require('webpack-merge');
-const PurgeCSSPlugin = require('@fullhuman/postcss-purgecss');
+const BundleAnalyzerPlugin =
+  require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
+const { merge } = require("webpack-merge");
+const PurgeCSSPlugin = require("@fullhuman/postcss-purgecss");
+const ImageminPlugin = require("imagemin-webpack-plugin").default;
 
-const pathsToPurge = glob.sync(path.resolve(__dirname, 'src/**/*.{js,jsx,ts,tsx,css,html}'));
+const pathsToPurge = glob.sync(
+  path.resolve(__dirname, "src/**/*.{js,jsx,ts,tsx,css,html}"),
+);
 
 module.exports = (env, argv) => {
   const isDevelopment = argv.mode === "development";
@@ -23,8 +27,12 @@ module.exports = (env, argv) => {
     entry: "./src/index.js",
     output: {
       path: path.resolve(__dirname, "dist"),
-      filename: isDevelopment ? "[name].bundle.js" : "[name].[contenthash].bundle.js",
-      chunkFilename: isDevelopment ? "[id].chunk.js" : "[id].[contenthash].chunk.js",
+      filename: isDevelopment
+        ? "[name].bundle.js"
+        : "[name].[contenthash].bundle.js",
+      chunkFilename: isDevelopment
+        ? "[id].chunk.js"
+        : "[id].[contenthash].chunk.js",
       assetModuleFilename: "assets/[hash][ext][query]",
       clean: true,
     },
@@ -59,16 +67,17 @@ module.exports = (env, argv) => {
             isDevelopment ? "style-loader" : MiniCssExtractPlugin.loader,
             "css-loader",
             {
-              loader: 'postcss-loader',
+              loader: "postcss-loader",
               options: {
                 postcssOptions: {
                   plugins: [
-                    !isDevelopment && new PurgeCSSPlugin({
-                      paths: pathsToPurge,
-                      safelist: {
-                        standard: [/^some-regex-to-keep$/] // Modify this as needed
-                      },
-                    }),
+                    !isDevelopment &&
+                      new PurgeCSSPlugin({
+                        paths: pathsToPurge,
+                        safelist: {
+                          standard: [/^some-regex-to-keep$/], // Modify this as needed
+                        },
+                      }),
                   ].filter(Boolean),
                 },
               },
@@ -80,18 +89,23 @@ module.exports = (env, argv) => {
           test: /\.(png|jpe?g|gif|svg|webp)$/i,
           use: [
             {
-              loader: 'responsive-loader',
+              loader: "url-loader",
               options: {
-                adapter: require('responsive-loader/sharp'),
+                limit: 8192, // 8 KB
+                name: "[path][name].[ext]",
+              },
+              loader: "responsive-loader",
+              options: {
+                adapter: require("responsive-loader/sharp"),
                 sizes: [300, 600, 1200],
                 placeholder: true,
                 placeholderSize: 50,
-                name: 'images/[name]-[width].[ext]',
-                format: 'webp' // Use WebP format for better compression
-              }
-            }
+                name: "images/[name]-[width].[ext]",
+                format: "webp", // Use WebP format for better compression
+              },
+            },
           ],
-          type: 'javascript/auto' // Needed to prevent asset modules from conflicting
+          type: "javascript/auto", // Needed to prevent asset modules from conflicting
         },
       ],
     },
@@ -101,6 +115,12 @@ module.exports = (env, argv) => {
         minify: !isDevelopment,
       }),
       new FaviconsWebpackPlugin("./src/assets/icon.png"),
+      new ImageminPlugin({
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        pngquant: {
+          quality: "95-100",
+        },
+      }),
     ],
   };
 
@@ -183,7 +203,7 @@ module.exports = (env, argv) => {
         skipWaiting: true,
       }),
       new CompressionPlugin({
-        algorithm: 'gzip',
+        algorithm: "gzip",
       }),
       new BundleAnalyzerPlugin({
         analyzerMode: "static",
@@ -191,11 +211,14 @@ module.exports = (env, argv) => {
       }),
       new ImageminWebpackPlugin({
         pngquant: {
-          quality: '95-100',
+          quality: "95-100",
         },
       }),
     ],
   };
 
-  return merge(commonConfig, isDevelopment ? developmentConfig : productionConfig);
+  return merge(
+    commonConfig,
+    isDevelopment ? developmentConfig : productionConfig,
+  );
 };
