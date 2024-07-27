@@ -103,7 +103,26 @@ module.exports = (env, argv) => {
           ],
         },
         {
-          test: /\.(png|jpe?g|gif|svg|webp)$/i,
+          test: /\.(png|jpe?g|webp)$/i,
+          use: [
+            {
+              loader: "responsive-loader",
+              options: {
+                adapter: require("responsive-loader/sharp"),
+                sizes: [320, 640, 960, 1200, 1800, 2400],
+                placeholder: true,
+                placeholderSize: 20,
+                name: isDevelopment
+                  ? "[name]-[width].[ext]"
+                  : "[name]-[width]-[hash:8].[ext]",
+                format: "webp",
+                quality: 80,
+              },
+            },
+          ],
+        },
+        {
+          test: /\.(gif|svg)$/i,
           type: "asset",
           parser: {
             dataUrlCondition: {
