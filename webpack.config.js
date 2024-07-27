@@ -15,6 +15,10 @@ const { merge } = require("webpack-merge");
 const PurgeCSSPlugin = require("@fullhuman/postcss-purgecss");
 const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 
+const PATHS = {
+  src: path.join(__dirname, "src"),
+};
+
 const pathsToPurge = glob.sync(
   path.resolve(__dirname, "src/**/*.{js,jsx,ts,tsx,css,html}"),
 );
@@ -34,10 +38,12 @@ module.exports = (env, argv) => {
         : "[id].[contenthash].chunk.js",
       assetModuleFilename: "assets/[hash][ext][query]",
       clean: true,
+      publicPath: "/",
     },
     resolve: {
       extensions: [".js", ".jsx", ".ts", ".tsx"],
       alias: {
+        "@": path.resolve(__dirname, "src"),
         react: "preact/compat",
         "react-dom": "preact/compat",
       },
@@ -51,7 +57,7 @@ module.exports = (env, argv) => {
             loader: "babel-loader",
             options: {
               presets: [
-                "@babel/preset-env",
+                ["@babel/preset-env", { useBuiltIns: "usage", corejs: 3 }],
                 ["@babel/preset-react", { pragma: "h" }],
                 "@babel/preset-typescript",
               ],
@@ -64,7 +70,18 @@ module.exports = (env, argv) => {
           test: /\.s?[ac]ss$/,
           use: [
             isDevelopment ? "style-loader" : MiniCssExtractPlugin.loader,
-            "css-loader",
+            {
+              loader: "css-loader",
+              options: {
+                importLoaders: 2,
+                modules: {
+                  auto: true,
+                  localIdentName: isDevelopment
+                    ? "[name]__[local]--[hash:base64:5]"
+                    : "[hash:base64]",
+                },
+              },
+            },
             {
               loader: "postcss-loader",
               options: {
@@ -74,7 +91,8 @@ module.exports = (env, argv) => {
                       new PurgeCSSPlugin({
                         paths: pathsToPurge,
                         safelist: {
-                          standard: [/^some-regex-to-keep$/], // Modify this as needed
+                          standard: [/^some-regex-to-keep$/],
+                          deep: [/^some-deep-regex-to-keep/],
                         },
                       }),
                   ].filter(Boolean),
@@ -86,9 +104,11 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.(png|jpe?g|gif|svg|webp)$/i,
-          type: "asset/resource",
-          generator: {
-            filename: "images/[name][ext][query]",
+          type: "asset",
+          parser: {
+            dataUrlCondition: {
+              maxSize: 8 * 1024, // 8kb
+            },
           },
         },
       ],
@@ -98,8 +118,19 @@ module.exports = (env, argv) => {
         template: "./src/index.html",
         minify: !isDevelopment,
       }),
-      new FaviconsWebpackPlugin("./src/assets/icon.png"),
-      // ImageMinimizerPlugin configuration moved to productionConfig
+      new FaviconsWebpackPlugin({
+        logo: "./src/assets/icon.png",
+        mode: "webapp",
+        devMode: "webapp",
+        favicons: {
+          appName: "My PWA",
+          appDescription: "My awesome Progressive Web App!",
+          developerName: "Developer",
+          developerURL: null,
+          background: "#ffffff",
+          theme_color: "#000000",
+        },
+      }),
     ],
   };
 
@@ -137,29 +168,21 @@ module.exports = (env, argv) => {
               drop_console: true,
             },
           },
+          extractComments: false,
         }),
         new CssMinimizerPlugin(),
         new ImageMinimizerPlugin({
-          test: /\.(jpe?g|png|gif|svg)$/i,
-          minimizer: [
-            {
-              implementation: require("image-minimizer-webpack-plugin")
-                .imageminMinify,
-              options: {
-                plugins: [
-                  ["gifsicle", { interlaced: true }],
-                  ["jpegtran", { progressive: true }],
-                  ["optipng", { optimizationLevel: 5 }],
-                  [
-                    "svgo",
-                    {
-                      plugins: [{ removeViewBox: false }],
-                    },
-                  ],
-                ],
-              },
+          minimizer: {
+            implementation: ImageMinimizerPlugin.imageminMinify,
+            options: {
+              plugins: [
+                ["gifsicle", { interlaced: true }],
+                ["mozjpeg", { quality: 80 }],
+                ["pngquant", { quality: [0.6, 0.8] }],
+                ["svgo", { plugins: [{ removeViewBox: false }] }],
+              ],
             },
-          ],
+          },
         }),
       ],
       splitChunks: {
@@ -196,19 +219,37 @@ module.exports = (env, argv) => {
           {
             src: path.resolve("src/assets/icon.png"),
             sizes: [96, 128, 192, 256, 384, 512],
+            purpose: "any maskable",
           },
         ],
       }),
       new GenerateSW({
         clientsClaim: true,
         skipWaiting: true,
+        runtimeCaching: [
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+              },
+            },
+          },
+        ],
       }),
       new CompressionPlugin({
         algorithm: "gzip",
+        test: /\.(js|css|html|svg)$/,
+        threshold: 10240,
+        minRatio: 0.8,
       }),
       new BundleAnalyzerPlugin({
         analyzerMode: "static",
         openAnalyzer: false,
+        reportFilename: "bundle-report.html",
       }),
     ],
   };
